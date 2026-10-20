@@ -1,6 +1,20 @@
 from django.urls import path
-
 from . import views
+
+from .models import Producto
+from rest_framework import routers, serializers, viewsets
+
+class ProductoSeralizers(serializers.ModelSerializer):
+    class Meta:
+        model = Producto
+        fields = '__all__'
+
+class ProductoViewSet(viewsets.ModelViewSet):
+    queryset = Producto.objects.all()
+    serializer_class = ProductoSeralizers
+
+router = routers.DefaultRouter()
+router.register(r'productos', ProductoViewSet)
 
 app_name = "inventario"
 
