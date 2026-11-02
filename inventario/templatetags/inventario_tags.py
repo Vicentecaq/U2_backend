@@ -6,10 +6,7 @@ register = template.Library()
 
 @register.filter(name="clp")
 def clp(value):
-    """Formatea un número al estilo chileno con signo de peso y separador de miles con punto:
-
-    14510630 -> $14.510.630
-    """
+    """Formatea un número 14510630 -> $14.510.630"""
     if value is None or value == "":
         return "$0"
     try:
