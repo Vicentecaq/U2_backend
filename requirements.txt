@@ -2,3 +2,11 @@ django
 psycopg2-binary
 python-dotenv
 whitenoise
+
+djangorestframework
+markdown
+django-filter
+
+djangorestframework-simplejwt
+
+django-cors-headers
