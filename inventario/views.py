@@ -488,3 +488,12 @@ def reporte_ventas(request):
         "estado_filtro": estado_filtro,
     }
     return render(request, "inventario/reporte_ventas.html", context)
+
+
+def cliente_app(request):
+    """
+    Vista que sirve el Cliente Web SPA consumidor de la API REST (ES03).
+    Permite autenticarse mediante JWT, realizar operaciones CRUD completas,
+    visualizar modelos 3D con Three.js y persistir datos offline.
+    """
+    return render(request, "inventario/cliente_app.html")

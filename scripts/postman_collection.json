@@ -1,0 +1,171 @@
+{
+  "info": {
+    "name": "API REST Control de Ventas e Inventario (ES03)",
+    "description": "Colección completa de endpoints para evaluación sumativa 3 (Django REST Framework, SimpleJWT y CORS)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Autenticación JWT",
+      "item": [
+        {
+          "name": "1.1 Obtener Token (Login)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"vicente\",\n  \"password\": \"Vicecq2901.\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/token/", "host": ["{{base_url}}"], "path": ["api", "token", ""] }
+          }
+        },
+        {
+          "name": "1.2 Refrescar Token (Refresh)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refresh\": \"{{refresh_token}}\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/token/refresh/", "host": ["{{base_url}}"], "path": ["api", "token", "refresh", ""] }
+          }
+        },
+        {
+          "name": "1.3 Verificar Token (Verify)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"{{access_token}}\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/token/verify/", "host": ["{{base_url}}"], "path": ["api", "token", "verify", ""] }
+          }
+        },
+        {
+          "name": "1.4 Perfil de Usuario Autenticado",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": { "raw": "{{base_url}}/api/perfil/", "host": ["{{base_url}}"], "path": ["api", "perfil", ""] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Productos (Catálogo & Stock)",
+      "item": [
+        {
+          "name": "2.1 Listar Productos (Sin Token -> 401)",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/productos/", "host": ["{{base_url}}"], "path": ["api", "productos", ""] }
+          }
+        },
+        {
+          "name": "2.2 Listar Productos (Con Token -> 200)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": { "raw": "{{base_url}}/api/productos/", "host": ["{{base_url}}"], "path": ["api", "productos", ""] }
+          }
+        },
+        {
+          "name": "2.3 Crear Producto",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Auriculares Inalámbricos Pro\",\n  \"descripcion\": \"Cancelación activa de ruido con audio espacial\",\n  \"precio\": \"89990.00\",\n  \"stock\": 8,\n  \"activo\": true\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/productos/", "host": ["{{base_url}}"], "path": ["api", "productos", ""] }
+          }
+        },
+        {
+          "name": "2.4 Stock Crítico (<= 5)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": { "raw": "{{base_url}}/api/productos/stock-critico/", "host": ["{{base_url}}"], "path": ["api", "productos", "stock-critico", ""] }
+          }
+        },
+        {
+          "name": "2.5 Ajustar Stock Rápido",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cantidad\": 5,\n  \"operacion\": \"sumar\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/productos/1/ajustar-stock/", "host": ["{{base_url}}"], "path": ["api", "productos", "1", "ajustar-stock", ""] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Ventas (Transacciones & POS)",
+      "item": [
+        {
+          "name": "3.1 Listar Ventas",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": { "raw": "{{base_url}}/api/ventas/", "host": ["{{base_url}}"], "path": ["api", "ventas", ""] }
+          }
+        },
+        {
+          "name": "3.2 Emitir Nueva Venta (Descuenta Stock)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cliente\": \"Cliente Corporativo SpA\",\n  \"estado\": \"pagada\",\n  \"observaciones\": \"Facturación electrónica vía API\",\n  \"detalles\": [\n    {\n      \"producto\": 1,\n      \"cantidad\": 2\n    }\n  ]\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/ventas/", "host": ["{{base_url}}"], "path": ["api", "ventas", ""] }
+          }
+        },
+        {
+          "name": "3.3 Anular Venta (Restaura Stock)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": { "raw": "{{base_url}}/api/ventas/1/anular/", "host": ["{{base_url}}"], "path": ["api", "ventas", "1", "anular", ""] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Métricas & Dashboard",
+      "item": [
+        {
+          "name": "4.1 KPIs en Tiempo Real",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": { "raw": "{{base_url}}/api/dashboard-stats/", "host": ["{{base_url}}"], "path": ["api", "dashboard-stats", ""] }
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    { "key": "base_url", "value": "http://127.0.0.1:8000" },
+    { "key": "access_token", "value": "" },
+    { "key": "refresh_token", "value": "" }
+  ]
+}
+

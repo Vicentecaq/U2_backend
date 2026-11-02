@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cliente Web Pro - Control de Ventas & Inventario API</title>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: "#eef2ff",
+              100: "#e0e7ff",
+              200: "#c7d2fe",
+              300: "#a5b4fc",
+              400: "#818cf8",
+              500: "#6366f1",
+              600: "#4f46e5",
+              700: "#4338ca",
+              800: "#3730a3",
+              900: "#312e81",
+            },
+            dark: {
+              bg: "#0B0F19",
+              surface: "#111827",
+              card: "#151E32",
+              hover: "#1B2742",
+              border: "#1F2D4A",
+            }
+          },
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', "system-ui", "sans-serif"],
+            display: ["Outfit", "sans-serif"],
+            mono: ['"JetBrains Mono"', "monospace"],
+          }
+        }
+      }
+    };
+  </script>
+
+  <!-- Three.js CDN para visualización 3D interactiva -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+  <!-- Chart.js para métricas interactivas -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    :root { color-scheme: dark; }
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: #070a13;
+      color: #e2e8f0;
+      background-image: 
+        radial-gradient(circle at 10% 15%, rgba(99, 102, 241, 0.08), transparent 30rem),
+        radial-gradient(circle at 85% 25%, rgba(16, 185, 129, 0.07), transparent 32rem),
+        radial-gradient(circle at 50% 85%, rgba(14, 165, 233, 0.05), transparent 40rem);
+      background-attachment: fixed;
+    }
+    .glass-panel {
+      background: linear-gradient(145deg, rgba(17, 24, 39, 0.85) 0%, rgba(15, 23, 42, 0.75) 100%);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.02);
+      backdrop-filter: blur(16px);
+    }
+    .glass-input {
+      background-color: #0c1322;
+      border: 1px solid #1f2d4a;
+      color: #f1f5f9;
+      outline: none;
+      transition: all 0.2s ease;
+    }
+    .glass-input:focus {
+      border-color: #6366f1;
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
+      background-color: #0f182c;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.375rem;
+      padding: 0.2rem 0.6rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .badge-optimo {
+      background-color: rgba(16, 185, 129, 0.15);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+    .badge-critico {
+      background-color: rgba(245, 158, 11, 0.15);
+      color: #fbbf24;
+      border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+    .badge-agotado {
+      background-color: rgba(244, 63, 94, 0.15);
+      color: #fb7185;
+      border: 1px solid rgba(244, 63, 94, 0.3);
+    }
+    /* Skeleton Animation */
+    .skeleton-box {
+      background: linear-gradient(90deg, #162035 25%, #223254 50%, #162035 75%);
+      background-size: 200% 100%;
+      animation: skeleton-loading 1.5s infinite;
+      border-radius: 0.5rem;
+    }
+    @keyframes skeleton-loading {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+    #threeCanvasContainer canvas {
+      width: 100% !important;
+      height: 100% !important;
+      display: block;
+      border-radius: 1rem;
+    }
+  </style>
+</head>
+<body class="min-h-full flex flex-col antialiased">
+
+  <!-- Top Navbar -->
+  <header class="sticky top-0 z-40 border-b border-slate-800/80 bg-[#080d1a]/90 backdrop-blur-md">
+    <div class="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
+      
+      <!-- Brand & Mode -->
+      <div class="flex items-center gap-4">
+        <div class="h-10 w-10 rounded-xl bg-gradient-to-tr from-indigo-500 via-indigo-600 to-emerald-400 p-0.5 shadow-lg shadow-indigo-500/25">
+          <div class="h-full w-full bg-[#0c1220] rounded-[10px] flex items-center justify-center font-display font-black text-indigo-400">
+            API
+          </div>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="font-display font-bold text-white text-lg tracking-tight">
+              Cliente Web <span class="text-indigo-400 font-mono">REST + JWT</span>
+            </h1>
+            <span class="rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/30 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider">
+              ES03
+            </span>
+          </div>
+          <p class="text-xs text-slate-400">Consumidor SPA con Three.js 3D & Persistencia Offline</p>
+        </div>
+      </div>
+
+      <!-- Network Status & User Session -->
+      <div class="flex items-center gap-3">
+        <!-- Offline / Online Indicator -->
+        <div id="netStatusBadge" class="flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold border border-emerald-500/30 bg-emerald-500/10 text-emerald-400">
+          <span class="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span id="netStatusText">En línea</span>
+        </div>
+
+        <!-- Base URL Config Toggle -->
+        <button id="btnConfigApi" class="hidden sm:flex items-center gap-1 rounded-lg border border-slate-700 bg-slate-800/60 hover:bg-slate-700 px-2.5 py-1 text-xs text-slate-300 transition" title="Configurar URL del Backend">
+          <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+          </svg>
+          <span id="labelApiHost">API: Localhost / Vercel</span>
+        </button>
+
+        <!-- User Logged In Bar -->
+        <div id="userProfileBar" class="hidden flex items-center gap-3">
+          <div class="text-right hidden sm:block">
+            <div id="userProfileName" class="text-xs font-bold text-white">vicente</div>
+            <div class="text-[10px] text-emerald-400 font-mono">Token Bearer Activo</div>
+          </div>
+          <button id="btnVerToken" class="rounded-lg border border-indigo-500/40 bg-indigo-500/10 hover:bg-indigo-500/20 px-2.5 py-1 text-xs font-semibold text-indigo-300 transition">
+            Ver JWT
+          </button>
+          <button id="btnLogout" class="rounded-lg bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/30 px-2.5 py-1 text-xs font-semibold text-rose-300 transition">
+            Salir
+          </button>
+        </div>
+
+        <!-- Login Trigger Button (When logged out) -->
+        <button id="btnLoginOpen" class="flex items-center gap-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 px-3.5 py-1.5 text-xs font-bold text-white shadow-lg shadow-indigo-600/30 transition">
+          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+          </svg>
+          <span>Iniciar Sesión JWT</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Notification Toast Container -->
+  <div id="toastContainer" class="fixed top-20 right-5 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none"></div>
+
+  <!-- Main Content Area -->
+  <main class="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6 lg:px-8 space-y-6">
+
+    <!-- Auth Alert Banner (When Unauthenticated) -->
+    <div id="authNoticeBanner" class="glass-panel rounded-2xl p-6 border-indigo-500/30 bg-gradient-to-r from-indigo-950/40 to-slate-900/60 flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div class="flex items-center gap-4">
+        <div class="h-12 w-12 rounded-xl bg-indigo-500/20 border border-indigo-500/40 flex items-center justify-center text-indigo-400 shrink-0">
+          <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+          </svg>
+        </div>
+        <div>
+          <h2 class="text-base font-bold text-white font-display">Autenticación Requerida (Bearer Token)</h2>
+          <p class="text-xs text-slate-300 mt-0.5">
+            Los endpoints de la API REST están protegidos con <code class="text-indigo-300 font-mono bg-indigo-950/80 px-1 py-0.5 rounded">IsAuthenticated</code>. Inicia sesión con tus credenciales para obtener el token JWT y desbloquear el CRUD.
+          </p>
+        </div>
+      </div>
+      <button id="btnBannerLogin" class="shrink-0 rounded-xl bg-indigo-600 hover:bg-indigo-500 px-5 py-2.5 text-xs font-bold text-white shadow-lg shadow-indigo-600/30 transition transform hover:-translate-y-0.5">
+        Ingresar Credenciales
+      </button>
+    </div>
+
+    <!-- 4 KPI Cards Summary (API /api/dashboard-stats/) -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" id="kpiContainer">
+      <!-- KPI 1: Ventas Totales -->
+      <div class="glass-panel rounded-2xl p-5 relative overflow-hidden">
+        <div class="flex items-center justify-between text-xs text-slate-400 font-bold uppercase tracking-wider">
+          <span>Ventas Facturadas</span>
+          <span class="text-indigo-400 font-mono text-[10px]">API GET</span>
+        </div>
+        <div id="kpiVentasTotales" class="text-2xl font-black font-display text-emerald-400 mt-2 font-mono">
+          $0
+        </div>
+        <div class="text-[11px] text-slate-400 mt-1 flex items-center justify-between">
+          <span>Ventas Hoy:</span>
+          <span id="kpiVentasHoy" class="font-bold text-slate-200 font-mono">$0</span>
+        </div>
+      </div>
+
+      <!-- KPI 2: Valor Inventario -->
+      <div class="glass-panel rounded-2xl p-5 relative overflow-hidden">
+        <div class="flex items-center justify-between text-xs text-slate-400 font-bold uppercase tracking-wider">
+          <span>Valor Inventario</span>
+          <span class="text-indigo-400 font-mono text-[10px]">SUPABASE</span>
+        </div>
+        <div id="kpiValorInventario" class="text-2xl font-black font-display text-indigo-400 mt-2 font-mono">
+          $0
+        </div>
+        <div class="text-[11px] text-slate-400 mt-1 flex items-center justify-between">
+          <span>Total Artículos:</span>
+          <span id="kpiTotalProductos" class="font-bold text-slate-200">0 ítems</span>
+        </div>
+      </div>
+
+      <!-- KPI 3: Stock Crítico Alert -->
+      <div class="glass-panel rounded-2xl p-5 relative overflow-hidden">
+        <div class="flex items-center justify-between text-xs text-slate-400 font-bold uppercase tracking-wider">
+          <span>Stock Crítico (&le; 5)</span>
+          <span class="text-amber-400 font-mono text-[10px]">ALERTA</span>
+        </div>
+        <div id="kpiStockCritico" class="text-2xl font-black font-display text-amber-400 mt-2 font-mono">
+          0
+        </div>
+        <div class="text-[11px] text-slate-400 mt-1 flex items-center justify-between">
+          <span>Productos Activos:</span>
+          <span id="kpiProductosActivos" class="font-bold text-slate-200">0</span>
+        </div>
+      </div>
+
+      <!-- KPI 4: JWT Token Status -->
+      <div class="glass-panel rounded-2xl p-5 relative overflow-hidden">
+        <div class="flex items-center justify-between text-xs text-slate-400 font-bold uppercase tracking-wider">
+          <span>Seguridad JWT</span>
+          <span class="text-emerald-400 font-mono text-[10px]">SimpleJWT</span>
+        </div>
+        <div id="kpiJwtStatus" class="text-lg font-bold font-display text-white mt-2">
+          No Autenticado
+        </div>
+        <div class="text-[11px] text-slate-400 mt-1 truncate" id="kpiTokenPreview">
+          Inicia sesión para generar Token
+        </div>
+      </div>
+    </div>
+
+    <!-- Middle Section: Three.js 3D Product Vault & Chart.js Metrics -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      
+      <!-- 3D Interactive Vault (Three.js) -->
+      <div class="glass-panel rounded-2xl p-5 lg:col-span-1 flex flex-col">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+          <div class="flex items-center gap-2">
+            <span class="h-2.5 w-2.5 rounded-full bg-indigo-400 animate-ping"></span>
+            <h3 class="font-display font-bold text-white text-sm">Visor 3D Interactivo (Three.js)</h3>
+          </div>
+          <span id="three3dBadge" class="badge badge-optimo">Stock Óptimo</span>
+        </div>
+
+        <!-- 3D Canvas Box -->
+        <div id="threeCanvasContainer" class="relative w-full h-56 bg-slate-950/70 rounded-xl my-3 border border-slate-800/80 overflow-hidden flex items-center justify-center">
+          <!-- Canvas will be injected here -->
+          <div id="threeHint" class="absolute bottom-2 text-center text-[10px] text-slate-400 bg-slate-900/80 px-2 py-0.5 rounded-full pointer-events-none">
+            Arrastra con el ratón para rotar 360° · Rueda para Zoom
+          </div>
+        </div>
+
+        <!-- 3D Controls & Info -->
+        <div class="space-y-2 mt-auto">
+          <div class="flex items-center justify-between text-xs">
+            <span class="text-slate-400">Producto Seleccionado:</span>
+            <span id="threeProductName" class="font-bold text-white truncate max-w-[160px]">Ninguno</span>
+          </div>
+          <div class="flex items-center justify-between text-xs">
+            <span class="text-slate-400">Stock Actual en Bodega:</span>
+            <span id="threeProductStock" class="font-mono font-bold text-indigo-400">0 uds</span>
+          </div>
+          <div class="flex gap-2 pt-1">
+            <button id="btn3dCube" class="flex-1 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-[11px] font-semibold text-slate-200 transition">
+              Caja
+            </button>
+            <button id="btn3dCylinder" class="flex-1 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-[11px] font-semibold text-slate-200 transition">
+              Barril
+            </button>
+            <button id="btn3dAutoRotate" class="flex-1 py-1 rounded-lg bg-indigo-600/30 hover:bg-indigo-600/50 border border-indigo-500/30 text-[11px] font-semibold text-indigo-300 transition">
+              Auto Rotar
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Chart.js Trend Graph & POS Quick Sale -->
+      <div class="glass-panel rounded-2xl p-5 lg:col-span-2 flex flex-col justify-between">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+          <div>
+            <h3 class="font-display font-bold text-white text-sm">Flujo de Ventas (Últimos 7 Días)</h3>
+            <p class="text-xs text-slate-400">Datos en tiempo real consumidos desde <code class="text-indigo-400">/api/dashboard-stats/</code></p>
+          </div>
+          <button id="btnRefreshStats" class="rounded-lg bg-slate-800 hover:bg-slate-700 p-1.5 text-slate-300 transition" title="Refrescar Estadísticas">
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+          </button>
+        </div>
+
+        <div class="h-56 w-full pt-2">
+          <canvas id="salesChart"></canvas>
+        </div>
+
+        <!-- Offline Cache Alert Bar -->
+        <div id="offlineCacheNotice" class="hidden mt-3 rounded-xl border border-amber-500/30 bg-amber-500/10 p-2.5 text-xs text-amber-300 flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <svg class="h-4 w-4 text-amber-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <span>Mostrando datos locales persistidos en <strong class="font-mono">localStorage</strong> (Modo Offline).</span>
+          </div>
+          <button id="btnClearOfflineCache" class="underline text-amber-400 hover:text-white text-[11px]">
+            Limpiar Caché
+          </button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Tab Navigation: Productos CRUD vs Terminal POS (Nueva Venta) -->
+    <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+      <div class="flex items-center gap-2">
+        <button id="tabBtnProductos" class="px-4 py-2 rounded-xl text-xs font-bold transition bg-indigo-600 text-white shadow-lg shadow-indigo-600/20">
+          Catálogo & Inventario (CRUD)
+        </button>
+        <button id="tabBtnPos" class="px-4 py-2 rounded-xl text-xs font-bold transition bg-slate-800 text-slate-300 hover:bg-slate-700">
+          Terminal de Venta Rápida (POS)
+        </button>
+        <button id="tabBtnVentas" class="px-4 py-2 rounded-xl text-xs font-bold transition bg-slate-800 text-slate-300 hover:bg-slate-700">
+          Historial de Ventas (API)
+        </button>
+      </div>
+
+      <!-- Action Button inside active tab -->
+      <div id="tabActionContainer">
+        <button id="btnNuevoProducto" class="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 px-4 py-2 text-xs font-bold text-white shadow-lg shadow-emerald-600/20 transition">
+          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+          </svg>
+          <span>Nuevo Producto</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- TAB 1: PRODUCTOS CRUD -->
+    <section id="sectionProductos" class="space-y-4">
+      <!-- Search & Filters -->
+      <div class="glass-panel rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div class="relative w-full sm:w-80">
+          <input
+            type="text"
+            id="inputBuscarProducto"
+            placeholder="Buscar por nombre o descripción..."
+            class="glass-input w-full rounded-xl py-2 pl-9 pr-4 text-xs"
+          />
+          <svg class="h-4 w-4 text-slate-400 absolute left-3 top-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+        </div>
+
+        <div class="flex items-center gap-2 w-full sm:w-auto">
+          <select id="selectFiltroStock" class="glass-input rounded-xl py-2 px-3 text-xs w-full sm:w-auto">
+            <option value="todos">Todos los productos</option>
+            <option value="critico">Solo Stock Crítico (&le; 5)</option>
+            <option value="activos">Solo Activos con Stock</option>
+          </select>
+
+          <button id="btnReloadProductos" class="rounded-xl bg-slate-800 hover:bg-slate-700 p-2 text-slate-300 transition" title="Recargar tabla">
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Products Table with Skeletons -->
+      <div class="glass-panel rounded-2xl overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-slate-800 text-left text-xs">
+            <thead class="bg-slate-900/80 uppercase tracking-wider text-slate-400 font-bold">
+              <tr>
+                <th class="px-5 py-3">ID</th>
+                <th class="px-5 py-3">Producto / Descripción</th>
+                <th class="px-5 py-3 text-right">Precio</th>
+                <th class="px-5 py-3 text-center">Stock</th>
+                <th class="px-5 py-3 text-center">Estado</th>
+                <th class="px-5 py-3 text-center">Visor 3D</th>
+                <th class="px-5 py-3 text-right">Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="tablaProductosBody" class="divide-y divide-slate-800/60">
+              <!-- Skeletons rendered by default -->
+              <tr>
+                <td colspan="7" class="p-6">
+                  <div class="space-y-3">
+                    <div class="skeleton-box h-8 w-full"></div>
+                    <div class="skeleton-box h-8 w-full"></div>
+                    <div class="skeleton-box h-8 w-full"></div>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 2: TERMINAL POS (REGISTRAR VENTA VÍA API) -->
+    <section id="sectionPos" class="hidden space-y-4">
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- Left: Cart Builder -->
+        <div class="glass-panel rounded-2xl p-5 lg:col-span-2 space-y-4">
+          <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+            <div>
+              <h3 class="font-display font-bold text-white text-base">Terminal de Facturación Directa</h3>
+              <p class="text-xs text-slate-400">Emite ventas con consumo a <code class="text-indigo-400">POST /api/ventas/</code> y descuento atómico de stock.</p>
+            </div>
+            <span class="rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 px-2.5 py-1 text-xs font-bold">
+              POS Online
+            </span>
+          </div>
+
+          <!-- Add Line Item Form -->
+          <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end bg-slate-900/50 p-4 rounded-xl border border-slate-800">
+            <div class="sm:col-span-6">
+              <label class="block text-xs font-semibold text-slate-400 mb-1">Seleccionar Producto</label>
+              <select id="posSelectProducto" class="glass-input w-full rounded-xl p-2 text-xs"></select>
+            </div>
+            <div class="sm:col-span-3">
+              <label class="block text-xs font-semibold text-slate-400 mb-1">Cantidad</label>
+              <input type="number" id="posInputCantidad" min="1" value="1" class="glass-input w-full rounded-xl p-2 text-xs text-center" />
+            </div>
+            <div class="sm:col-span-3">
+              <button id="posBtnAgregarItem" class="w-full rounded-xl bg-indigo-600 hover:bg-indigo-500 p-2 text-xs font-bold text-white transition flex items-center justify-center gap-1">
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+                <span>Añadir</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Cart Items Table -->
+          <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-slate-800 text-xs">
+              <thead class="bg-slate-900/60 text-slate-400 font-bold uppercase">
+                <tr>
+                  <th class="py-2.5 px-3 text-left">Ítem</th>
+                  <th class="py-2.5 px-3 text-center">Cant.</th>
+                  <th class="py-2.5 px-3 text-right">Precio Unit.</th>
+                  <th class="py-2.5 px-3 text-right">Subtotal</th>
+                  <th class="py-2.5 px-3 text-center">Quitar</th>
+                </tr>
+              </thead>
+              <tbody id="posCartBody" class="divide-y divide-slate-800/40">
+                <tr>
+                  <td colspan="5" class="py-8 text-center text-slate-500">
+                    El carrito está vacío. Agrega productos arriba para iniciar la venta.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Right: Checkout Summary -->
+        <div class="glass-panel rounded-2xl p-5 flex flex-col justify-between space-y-4">
+          <div>
+            <h3 class="font-display font-bold text-white text-base pb-3 border-b border-slate-800">Resumen de Venta</h3>
+            
+            <div class="space-y-3 mt-4">
+              <div>
+                <label class="block text-xs font-semibold text-slate-400 mb-1">Cliente / Razón Social</label>
+                <input type="text" id="posInputCliente" placeholder="Ej: Juan Pérez o Consumidor Final" class="glass-input w-full rounded-xl p-2.5 text-xs" />
+              </div>
+
+              <div>
+                <label class="block text-xs font-semibold text-slate-400 mb-1">Observaciones</label>
+                <textarea id="posInputObservaciones" rows="2" placeholder="Nota interna o método de pago..." class="glass-input w-full rounded-xl p-2.5 text-xs"></textarea>
+              </div>
+
+              <div class="pt-3 border-t border-slate-800 space-y-1.5 text-xs">
+                <div class="flex justify-between text-slate-400">
+                  <span>Neto Referencial:</span>
+                  <span id="posSummaryNeto" class="font-mono font-medium">$0</span>
+                </div>
+                <div class="flex justify-between text-slate-400">
+                  <span>IVA (19%):</span>
+                  <span id="posSummaryIva" class="font-mono font-medium">$0</span>
+                </div>
+                <div class="flex justify-between text-base font-bold text-white pt-2 border-t border-slate-800/80">
+                  <span>Total a Pagar:</span>
+                  <span id="posSummaryTotal" class="font-mono text-emerald-400 text-xl font-black">$0</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <button id="posBtnEmitirVenta" class="w-full rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 py-3 text-sm font-bold text-white shadow-lg shadow-emerald-500/25 transition flex items-center justify-center gap-2">
+            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+            <span>Emitir Venta vía API</span>
+          </button>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- TAB 3: HISTORIAL DE VENTAS API -->
+    <section id="sectionVentas" class="hidden space-y-4">
+      <div class="glass-panel rounded-2xl p-4 flex items-center justify-between">
+        <div>
+          <h3 class="font-display font-bold text-white text-base">Historial de Transacciones</h3>
+          <p class="text-xs text-slate-400">Consumiendo endpoint <code class="text-indigo-400 font-mono">/api/ventas/</code> con anulación reversible de stock.</p>
+        </div>
+        <button id="btnReloadVentas" class="rounded-xl bg-slate-800 hover:bg-slate-700 px-3 py-1.5 text-xs text-slate-200 transition flex items-center gap-1.5">
+          <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+          <span>Actualizar</span>
+        </button>
+      </div>
+
+      <div class="glass-panel rounded-2xl overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-slate-800 text-left text-xs">
+            <thead class="bg-slate-900/80 uppercase tracking-wider text-slate-400 font-bold">
+              <tr>
+                <th class="px-5 py-3">Folio</th>
+                <th class="px-5 py-3">Fecha</th>
+                <th class="px-5 py-3">Cliente</th>
+                <th class="px-5 py-3 text-center">Estado</th>
+                <th class="px-5 py-3 text-right">Total</th>
+                <th class="px-5 py-3 text-center">Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="tablaVentasBody" class="divide-y divide-slate-800/60">
+              <tr>
+                <td colspan="6" class="p-6 text-center text-slate-500">Cargando ventas...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- Dev Console: HTTP Request Inspector (Live Headers & Bearer Token) -->
+    <div class="glass-panel rounded-2xl p-4 border-slate-800 space-y-2">
+      <div class="flex items-center justify-between text-xs text-slate-400">
+        <div class="flex items-center gap-2">
+          <span class="h-2 w-2 rounded-full bg-indigo-400"></span>
+          <span class="font-bold text-slate-300">Live API Traffic Inspector (DRF + JWT Header)</span>
+        </div>
+        <button id="btnClearConsole" class="text-[11px] text-slate-500 hover:text-slate-300">Limpiar Log</button>
+      </div>
+      <div id="devLogConsole" class="bg-slate-950 p-3 rounded-xl font-mono text-[11px] text-emerald-400 h-24 overflow-y-auto space-y-1 border border-slate-900">
+        <div>[System] Cliente Web iniciado. Listo para interactuar con la API REST.</div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- MODAL: LOGIN JWT -->
+  <div id="modalLogin" class="fixed inset-0 z-50 hidden bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="glass-panel rounded-2xl max-w-md w-full p-6 space-y-5 border-indigo-500/40 relative">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div class="flex items-center gap-2.5">
+          <div class="h-8 w-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white">
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+          </div>
+          <div>
+            <h3 class="font-display font-bold text-white text-base">Autenticación SimpleJWT</h3>
+            <p class="text-[11px] text-slate-400">Genera Bearer Access & Refresh Tokens</p>
+          </div>
+        </div>
+        <button id="modalLoginClose" class="text-slate-400 hover:text-white p-1">
+          <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <form id="formLogin" class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 mb-1">Usuario Django</label>
+          <input type="text" id="loginUsername" required value="vicente" class="glass-input w-full rounded-xl p-2.5 text-xs" />
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 mb-1">Contraseña</label>
+          <input type="password" id="loginPassword" required placeholder="Contraseña..." class="glass-input w-full rounded-xl p-2.5 text-xs" />
+        </div>
+        <div id="loginErrorMsg" class="hidden text-xs text-rose-400 bg-rose-500/10 p-2.5 rounded-xl border border-rose-500/30"></div>
+
+        <button type="submit" id="loginSubmitBtn" class="w-full rounded-xl bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 py-2.5 text-xs font-bold text-white shadow-lg shadow-indigo-600/30 transition flex items-center justify-center gap-2">
+          <span>Obtener Tokens JWT</span>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: PRODUCTO (NUEVO / EDITAR) -->
+  <div id="modalProducto" class="fixed inset-0 z-50 hidden bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="glass-panel rounded-2xl max-w-md w-full p-6 space-y-4 border-slate-700 relative">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <h3 id="modalProductoTitle" class="font-display font-bold text-white text-base">Nuevo Producto</h3>
+        <button id="modalProductoClose" class="text-slate-400 hover:text-white p-1">
+          <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <form id="formProducto" class="space-y-3">
+        <input type="hidden" id="prodId" />
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 mb-1">Nombre del Producto</label>
+          <input type="text" id="prodNombre" required class="glass-input w-full rounded-xl p-2.5 text-xs" placeholder="Ej: Mouse Ergonómico" />
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 mb-1">Descripción</label>
+          <textarea id="prodDescripcion" rows="2" class="glass-input w-full rounded-xl p-2.5 text-xs" placeholder="Detalles técnicos..."></textarea>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-400 mb-1">Precio Unitario ($)</label>
+            <input type="number" id="prodPrecio" required min="1" step="0.01" class="glass-input w-full rounded-xl p-2.5 text-xs" />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-400 mb-1">Stock Inicial</label>
+            <input type="number" id="prodStock" required min="0" class="glass-input w-full rounded-xl p-2.5 text-xs" />
+          </div>
+        </div>
+        <div class="flex items-center gap-2 pt-1">
+          <input type="checkbox" id="prodActivo" checked class="h-4 w-4 rounded bg-slate-900 border-slate-700 text-indigo-600" />
+          <label for="prodActivo" class="text-xs text-slate-300">Producto activo para la venta</label>
+        </div>
+
+        <button type="submit" id="btnGuardarProducto" class="w-full mt-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 py-2.5 text-xs font-bold text-white transition">
+          Guardar Producto en API
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: VER JWT DETAILS -->
+  <div id="modalJwtDetails" class="fixed inset-0 z-50 hidden bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="glass-panel rounded-2xl max-w-lg w-full p-6 space-y-4 border-indigo-500/40 relative">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <h3 class="font-display font-bold text-white text-base">Detalle de Tokens SimpleJWT</h3>
+        <button id="modalJwtClose" class="text-slate-400 hover:text-white p-1">
+          <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <div class="space-y-3 text-xs">
+        <div>
+          <span class="block text-slate-400 font-bold mb-1">Access Token (Bearer Header):</span>
+          <textarea id="jwtAccessVal" readonly rows="4" class="glass-input font-mono text-[10px] w-full p-2 rounded-xl text-emerald-400"></textarea>
+        </div>
+        <div>
+          <span class="block text-slate-400 font-bold mb-1">Refresh Token:</span>
+          <textarea id="jwtRefreshVal" readonly rows="2" class="glass-input font-mono text-[10px] w-full p-2 rounded-xl text-indigo-400"></textarea>
+        </div>
+        <div class="flex gap-2">
+          <button id="btnForceRefresh" class="flex-1 rounded-xl bg-indigo-600 hover:bg-indigo-500 py-2 text-xs font-bold text-white transition">
+            Refrescar Token Ahora (POST /api/token/refresh/)
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="app.js"></script>
+</body>
+</html>
+

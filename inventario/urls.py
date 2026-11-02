@@ -1,25 +1,10 @@
 from django.urls import path
 from . import views
 
-from .models import Producto
-from rest_framework import routers, serializers, viewsets
-
-class ProductoSeralizers(serializers.ModelSerializer):
-    class Meta:
-        model = Producto
-        fields = '__all__'
-
-class ProductoViewSet(viewsets.ModelViewSet):
-    queryset = Producto.objects.all()
-    serializer_class = ProductoSeralizers
-
-router = routers.DefaultRouter()
-router.register(r'productos', ProductoViewSet)
-
 app_name = "inventario"
 
 urlpatterns = [
-    # Dashboard principal de control de ventas
+    # Dashboard principal de control de ventas (ES01 / ES02)
     path("", views.dashboard, name="dashboard"),
 
     # Catálogo de Productos e Inventario
@@ -40,4 +25,7 @@ urlpatterns = [
     path("ventas/<int:pk>/", views.detalle_venta, name="detalle_venta"),
     path("ventas/<int:pk>/editar/", views.editar_venta, name="editar_venta"),
     path("ventas/<int:pk>/eliminar/", views.eliminar_venta, name="eliminar_venta"),
+
+    # Cliente Web SPA Integrado (ES03 - Consumo de API REST con Three.js y JWT)
+    path("cliente/", views.cliente_app, name="cliente_app"),
 ]

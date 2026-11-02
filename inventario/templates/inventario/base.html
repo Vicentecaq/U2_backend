@@ -263,6 +263,16 @@
               </svg>
               Reportes
             </a>
+            <a
+              href="{% url 'inventario:cliente_app' %}"
+              class="flex items-center gap-2 rounded-lg px-3 py-2 transition bg-gradient-to-r from-indigo-600/20 to-emerald-600/20 text-emerald-400 border border-emerald-500/40 hover:bg-emerald-500/20 font-bold"
+              target="_blank"
+            >
+              <svg class="h-4 w-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+              </svg>
+              <span>Cliente API (SPA)</span>
+            </a>
           </nav>
         </div>
 
@@ -322,6 +332,13 @@
           class="block rounded-lg px-3 py-2 text-base font-medium text-slate-200 hover:bg-slate-800 hover:text-white"
         >
           📈 Reportes & Finanzas
+        </a>
+        <a
+          href="{% url 'inventario:cliente_app' %}"
+          class="block rounded-lg px-3 py-2 text-base font-medium text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20"
+          target="_blank"
+        >
+          ⚡ Cliente API REST (SPA)
         </a>
       </div>
     </header>
