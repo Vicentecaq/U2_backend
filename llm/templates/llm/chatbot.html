@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chatbot IA - GroqCloud</title>
+    <!-- Marked.js para renderizar Markdown -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- Highlight.js para resaltar código -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .chat-container {
+            width: 100%;
+            max-width: 800px;
+            height: 90vh;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .chat-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+            text-align: center;
+            font-size: 24px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 30px;
+            background: #f8f9fa;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .message {
+            display: flex;
+            align-items: flex-start;
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message.user {
+            flex-direction: row-reverse;
+        }
+
+        .message-content {
+            max-width: 70%;
+            padding: 15px 20px;
+            border-radius: 18px;
+            line-height: 1.5;
+            word-wrap: break-word;
+        }
+
+        .message.user .message-content {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-bottom-right-radius: 5px;
+        }
+
+        .message.bot .message-content {
+            background: white;
+            color: #333;
+            border: 1px solid #e0e0e0;
+            border-bottom-left-radius: 5px;
+        }
+
+        /* Estilos para Markdown en mensajes del bot */
+        .message.bot .message-content h1,
+        .message.bot .message-content h2,
+        .message.bot .message-content h3,
+        .message.bot .message-content h4,
+        .message.bot .message-content h5,
+        .message.bot .message-content h6 {
+            margin: 10px 0 8px 0;
+            font-weight: 600;
+            color: #667eea;
+        }
+
+        .message.bot .message-content h1 { font-size: 1.5em; }
+        .message.bot .message-content h2 { font-size: 1.3em; }
+        .message.bot .message-content h3 { font-size: 1.1em; }
+
+        .message.bot .message-content p {
+            margin: 8px 0;
+        }
+
+        .message.bot .message-content ul,
+        .message.bot .message-content ol {
+            margin: 8px 0;
+            padding-left: 25px;
+        }
+
+        .message.bot .message-content li {
+            margin: 4px 0;
+        }
+
+        .message.bot .message-content code {
+            background: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            color: #e83e8c;
+        }
+
+        .message.bot .message-content pre {
+            background: #282c34;
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 10px 0;
+        }
+
+        .message.bot .message-content pre code {
+            background: transparent;
+            padding: 0;
+            color: #abb2bf;
+            font-size: 0.9em;
+            display: block;
+        }
+
+        .message.bot .message-content blockquote {
+            border-left: 4px solid #667eea;
+            padding-left: 15px;
+            margin: 10px 0;
+            color: #666;
+            font-style: italic;
+        }
+
+        .message.bot .message-content a {
+            color: #667eea;
+            text-decoration: none;
+        }
+
+        .message.bot .message-content a:hover {
+            text-decoration: underline;
+        }
+
+        .message.bot .message-content table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 10px 0;
+        }
+
+        .message.bot .message-content table th,
+        .message.bot .message-content table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+
+        .message.bot .message-content table th {
+            background: #667eea;
+            color: white;
+            font-weight: 600;
+        }
+
+        .message.bot .message-content table tr:nth-child(even) {
+            background: #f9f9f9;
+        }
+
+        .message.bot .message-content hr {
+            border: none;
+            border-top: 2px solid #e0e0e0;
+            margin: 15px 0;
+        }
+
+        .message.bot .message-content strong {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .message.bot .message-content em {
+            font-style: italic;
+        }
+
+        .chat-input-container {
+            padding: 20px;
+            background: white;
+            border-top: 1px solid #e0e0e0;
+            display: flex;
+            gap: 10px;
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 15px 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 25px;
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        .chat-input:focus {
+            border-color: #667eea;
+        }
+
+        .send-button {
+            padding: 15px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .send-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .send-button:active {
+            transform: translateY(0);
+        }
+
+        .send-button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .typing-indicator {
+            display: none;
+            padding: 15px 20px;
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 18px;
+            border-bottom-left-radius: 5px;
+            max-width: 70px;
+        }
+
+        .typing-indicator.active {
+            display: block;
+        }
+
+        .typing-indicator span {
+            height: 10px;
+            width: 10px;
+            background: #667eea;
+            border-radius: 50%;
+            display: inline-block;
+            margin: 0 2px;
+            animation: bounce 1.4s infinite ease-in-out both;
+        }
+
+        .typing-indicator span:nth-child(1) {
+            animation-delay: -0.32s;
+        }
+
+        .typing-indicator span:nth-child(2) {
+            animation-delay: -0.16s;
+        }
+
+        @keyframes bounce {
+            0%, 80%, 100% {
+                transform: scale(0);
+            }
+            40% {
+                transform: scale(1);
+            }
+        }
+
+        .welcome-message {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .welcome-message h2 {
+            margin-bottom: 10px;
+            color: #667eea;
+        }
+
+        /* Scrollbar personalizada */
+        .chat-messages::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .chat-messages::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb {
+            background: #667eea;
+            border-radius: 4px;
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb:hover {
+            background: #764ba2;
+        }
+
+        @media (max-width: 768px) {
+            .chat-container {
+                height: 100vh;
+                border-radius: 0;
+            }
+
+            .message-content {
+                max-width: 85%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">
+            🤖 Chatbot IA - GroqCloud
+        </div>
+        
+        <div class="chat-messages" id="chatMessages">
+            <div class="welcome-message">
+                <h2>¡Bienvenido!</h2>
+                <p>Soy tu asistente de IA. ¿En qué puedo ayudarte hoy?</p>
+            </div>
+        </div>
+        
+        <div class="chat-input-container">
+            <input 
+                type="text" 
+                class="chat-input" 
+                id="messageInput" 
+                placeholder="Escribe tu mensaje aquí..."
+                autocomplete="off"
+            >
+            <button class="send-button" id="sendButton">Enviar</button>
+        </div>
+    </div>
+
+    <script>
+        // Configurar Marked.js
+        marked.setOptions({
+            highlight: function(code, lang) {
+                if (lang && hljs.getLanguage(lang)) {
+                    try {
+                        return hljs.highlight(code, { language: lang }).value;
+                    } catch (err) {}
+                }
+                return hljs.highlightAuto(code).value;
+            },
+            breaks: true,
+            gfm: true
+        });
+
+        const chatMessages = document.getElementById('chatMessages');
+        const messageInput = document.getElementById('messageInput');
+        const sendButton = document.getElementById('sendButton');
+        let isProcessing = false;
+
+        // Función para agregar mensaje al chat
+        function addMessage(content, isUser) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isUser ? 'user' : 'bot'}`;
+            
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'message-content';
+            
+            if (isUser) {
+                // Mensajes del usuario en texto plano
+                contentDiv.textContent = content;
+            } else {
+                // Mensajes del bot con renderizado de Markdown
+                contentDiv.innerHTML = marked.parse(content);
+            }
+            
+            messageDiv.appendChild(contentDiv);
+            chatMessages.appendChild(messageDiv);
+            
+            // Scroll automático al último mensaje
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // Función para mostrar indicador de escritura
+        function showTypingIndicator() {
+            const typingDiv = document.createElement('div');
+            typingDiv.className = 'message bot';
+            typingDiv.id = 'typingIndicator';
+            
+            const indicator = document.createElement('div');
+            indicator.className = 'typing-indicator active';
+            indicator.innerHTML = '<span></span><span></span><span></span>';
+            
+            typingDiv.appendChild(indicator);
+            chatMessages.appendChild(typingDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // Función para ocultar indicador de escritura
+        function hideTypingIndicator() {
+            const typingIndicator = document.getElementById('typingIndicator');
+            if (typingIndicator) {
+                typingIndicator.remove();
+            }
+        }
+
+        // Función para enviar mensaje
+        async function sendMessage() {
+            const message = messageInput.value.trim();
+            
+            if (!message || isProcessing) return;
+            
+            // Agregar mensaje del usuario
+            addMessage(message, true);
+            messageInput.value = '';
+            
+            // Deshabilitar input mientras se procesa
+            isProcessing = true;
+            sendButton.disabled = true;
+            messageInput.disabled = true;
+            
+            // Mostrar indicador de escritura
+            showTypingIndicator();
+            
+            try {
+                const response = await fetch('/api/chat/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ message: message })
+                });
+                
+                const data = await response.json();
+                
+                // Ocultar indicador de escritura
+                hideTypingIndicator();
+                
+                if (data.status === 'success') {
+                    addMessage(data.response, false);
+                } else {
+                    addMessage('Lo siento, hubo un error al procesar tu mensaje.', false);
+                }
+            } catch (error) {
+                hideTypingIndicator();
+                addMessage('Error de conexión. Por favor, intenta de nuevo.', false);
+                console.error('Error:', error);
+            } finally {
+                // Rehabilitar input
+                isProcessing = false;
+                sendButton.disabled = false;
+                messageInput.disabled = false;
+                messageInput.focus();
+            }
+        }
+
+        // Event listeners
+        sendButton.addEventListener('click', sendMessage);
+        
+        messageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        // Remover mensaje de bienvenida al primer mensaje
+        let firstMessage = true;
+        const originalAddMessage = addMessage;
+        addMessage = function(content, isUser) {
+            if (firstMessage && isUser) {
+                const welcomeMessage = document.querySelector('.welcome-message');
+                if (welcomeMessage) {
+                    welcomeMessage.remove();
+                }
+                firstMessage = false;
+            }
+            originalAddMessage(content, isUser);
+        };
+
+        // Focus en el input al cargar
+        messageInput.focus();
+    </script>
+</body>
+</html>

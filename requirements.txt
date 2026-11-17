@@ -10,3 +10,5 @@ django-filter
 djangorestframework-simplejwt
 
 django-cors-headers
+
+groq
